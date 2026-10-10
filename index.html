@@ -827,7 +827,7 @@ async function poll() {
   } catch (_) {}
 }
 /* ---- Notificaciones push: avisos en el celular aunque la app esté cerrada o en segundo plano ---- */
-const VAPID_PUB = 'BGtml9BrD14RKJowCAy9ve01PNMPm1l62sYvsC_E0GRTHXhu_XkM3vdB1jGlzxvzZCrgkYMtJy2oxEvxBGpHdZ4';
+const VAPID_PUB = 'BKpk_fsfmbX-rWoEN_kLB3AFxxVT1Sk3hHcvq3G_OiCyZhm4ZMtgB9x_Uz556QviXE_3eYr4s93vvNbcgADYPQs';
 const u8 = s => { const b = atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from([...b].map(c => c.charCodeAt(0))); };
 const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && /^https?:$/.test(location.protocol);
 let swReg = null;
