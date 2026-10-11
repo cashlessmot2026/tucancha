@@ -5,9 +5,11 @@
 import webpush from 'npm:web-push@3.6.7';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
+// Prefiere TUCANCHA_<NOMBRE>; si no existe usa <NOMBRE> (el proyecto comparte secretos con otras apps)
+const envT = (n: string) => Deno.env.get('TUCANCHA_' + n) || Deno.env.get(n);
 const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
-const PUB = Deno.env.get('VAPID_PUBLIC_KEY') || '', PRIV = Deno.env.get('VAPID_PRIVATE_KEY') || '';
-if (PUB && PRIV) webpush.setVapidDetails(Deno.env.get('VAPID_SUBJECT') || 'mailto:glideappsnuevo2025@gmail.com', PUB, PRIV);
+const PUB = envT('VAPID_PUBLIC_KEY') || '', PRIV = envT('VAPID_PRIVATE_KEY') || '';
+if (PUB && PRIV) webpush.setVapidDetails(envT('VAPID_SUBJECT') || 'mailto:eduth4846@gmail.com', PUB, PRIV);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const json = (o: unknown) => new Response(JSON.stringify(o), { headers: { ...CORS, 'Content-Type': 'application/json' } });
 const TITULOS: Record<string, string> = { reserva_nueva: '🆕 Reserva nueva', reserva_cancelada: '❌ Reserva cancelada', pago: '💳 Pago por aprobar', recarga: '💰 Recarga registrada', reto: '⚔️ Reto', publicidad: '📣 Nuevo aviso', marcador: '🎾 Marcador' };

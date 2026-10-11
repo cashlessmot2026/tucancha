@@ -9,6 +9,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 import { SMTPClient } from 'https://deno.land/x/denomailer@1.6.0/mod.ts';
 import QRCode from 'npm:qrcode@1.5.3';
 
+// Prefiere TUCANCHA_<NOMBRE>; si no existe usa <NOMBRE> (el proyecto comparte secretos con otras apps)
+const envT = (n: string) => Deno.env.get('TUCANCHA_' + n) || Deno.env.get(n);
 const SB_URL = Deno.env.get('SUPABASE_URL')!;
 const sb = createClient(SB_URL, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 const TZ = '-05:00'; // Colombia (sin horario de verano)
@@ -38,8 +40,8 @@ const appUrl = (c: Record<string, string>) => (c.app_url || Deno.env.get('APP_UR
 const brandName = (c: Record<string, string>) => c.nombre_app || 'TuCancha';
 
 async function sendMail(c: Record<string, string>, to: string, subject: string, html: string, text: string) {
-  const user = Deno.env.get('GMAIL_USER') || 'glideappsnuevo2025@gmail.com';
-  const pass = (Deno.env.get('GMAIL_APP_PASSWORD') || '').replace(/\s+/g, '');
+  const user = envT('GMAIL_USER') || 'glideappsnuevo2025@gmail.com';
+  const pass = (envT('GMAIL_APP_PASSWORD') || '').replace(/\s+/g, '');
   if (!pass) throw new Error('SMTP no configurado: falta el secreto GMAIL_APP_PASSWORD');
   const client = new SMTPClient({ connection: { hostname: 'smtp.gmail.com', port: 465, tls: true, auth: { username: user, password: pass } } });
   try { await client.send({ from: `"${ascii(brandName(c)).replace(/["<>]/g, '') || 'Reservas'}" <${user}>`, to, subject: ascii(subject), content: text, html }); }
@@ -143,7 +145,7 @@ async function espera(body: any) {
 
 async function estado() {
   const c = await cfg();
-  return { ok: true, smtp_configurado: !!(Deno.env.get('GMAIL_APP_PASSWORD') || '').replace(/\s+/g, ''), remitente: Deno.env.get('GMAIL_USER') || 'glideappsnuevo2025@gmail.com', app_url: appUrl(c) || null };
+  return { ok: true, smtp_configurado: !!(envT('GMAIL_APP_PASSWORD') || '').replace(/\s+/g, ''), remitente: envT('GMAIL_USER') || 'glideappsnuevo2025@gmail.com', app_url: appUrl(c) || null };
 }
 
 /* ---------- Servidor ---------- */
