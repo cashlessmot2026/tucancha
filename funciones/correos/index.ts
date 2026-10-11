@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
       const { data: r } = await sb.from('reservas').select('qr_token').eq('qr_token', qr).maybeSingle();
       if (!r) return new Response('not found', { status: 404, headers: CORS });
       const base = appUrl(await cfg());
-      const png: Uint8Array = await QRCode.toBuffer(base ? `${base}#/checkin/${qr}` : `PADEL:${qr}`, { type: 'png', width: 400, margin: 2, errorCorrectionLevel: 'M' });
+      const png: Uint8Array = await QRCode.toBuffer(base ? `${base}#/checkin/${qr}` : `CANCHA:${qr}`, { type: 'png', width: 400, margin: 2, errorCorrectionLevel: 'M' });
       return new Response(png, { headers: { ...CORS, 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=86400' } });
     }
     if (req.method !== 'POST') return json({ ok: false, motivo: 'Método no permitido' }, 405);
