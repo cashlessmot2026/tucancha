@@ -39,12 +39,13 @@ async function cfg(): Promise<Record<string, string>> {
 const appUrl = (c: Record<string, string>) => (c.app_url || Deno.env.get('APP_URL') || '').replace(/#.*$/, '');
 const brandName = (c: Record<string, string>) => c.nombre_app || 'TuCancha';
 
-async function sendMail(c: Record<string, string>, to: string, subject: string, html: string, text: string) {
+// deno-lint-ignore no-explicit-any
+async function sendMail(c: Record<string, string>, to: string, subject: string, html: string, text: string, attachments?: any[]) {
   const user = envT('GMAIL_USER') || 'glideappsnuevo2025@gmail.com';
   const pass = (envT('GMAIL_APP_PASSWORD') || '').replace(/\s+/g, '');
   if (!pass) throw new Error('SMTP no configurado: falta el secreto GMAIL_APP_PASSWORD');
   const client = new SMTPClient({ connection: { hostname: 'smtp.gmail.com', port: 465, tls: true, auth: { username: user, password: pass } } });
-  try { await client.send({ from: `"${ascii(brandName(c)).replace(/["<>]/g, '') || 'Reservas'}" <${user}>`, to, subject: ascii(subject), content: text, html }); }
+  try { await client.send({ from: `"${ascii(brandName(c)).replace(/["<>]/g, '') || 'Reservas'}" <${user}>`, to, subject: ascii(subject), content: text, html, ...(attachments?.length ? { attachments } : {}) }); }
   finally { try { await client.close(); } catch (_) { /* ignorar */ } }
 }
 
@@ -74,8 +75,15 @@ function detalles(r: any) {
   </table>`;
   return { nombre, tabla };
 }
-const qrImg = (r: { qr_token: string }) => `<div style="text-align:center;margin:18px 0"><img src="${SB_URL}/functions/v1/correos?qr=${r.qr_token}" width="200" height="200" alt="Código QR de tu reserva" style="border:1px solid #e3e8f5;border-radius:12px;padding:8px;background:#fff"><div style="color:#6b7896;font-size:12px;margin-top:6px">Muestra este código al administrador al llegar</div></div>`;
-const RESERVA_SELECT = '*, canchas(nombre,precio_hora), sedes(nombre,ciudad), app_users(nombre,correo)';
+const QR_CID = 'qr-reserva@tucancha';
+async function qrAdjunto(r: { qr_token: string }, c: Record<string, string>) {
+  const base = appUrl(c);
+  const png: Uint8Array = await QRCode.toBuffer(base ? `${base}#/checkin/${r.qr_token}` : `CANCHA:${r.qr_token}`, { type: 'png', width: 400, margin: 2, errorCorrectionLevel: 'M' });
+  let bin = ''; for (const b of png) bin += String.fromCharCode(b);
+  return [{ filename: 'qr-reserva.png', content: btoa(bin), encoding: 'base64', contentType: 'image/png', contentID: QR_CID }];
+}
+const qrImg = (_r: { qr_token: string }) => `<div style="text-align:center;margin:18px 0"><img src="cid:${QR_CID}" width="200" height="200" alt="Código QR de tu reserva" style="border:1px solid #e3e8f5;border-radius:12px;padding:8px;background:#fff"><div style="color:#6b7896;font-size:12px;margin-top:6px">Muestra este código al administrador al llegar</div></div>`;
+const RESERVA_SELECT = '*, canchas(nombre,precio_hora,precio_noche), sedes(nombre,ciudad), app_users(nombre,correo)';
 
 /* ---------- Acciones ---------- */
 // deno-lint-ignore no-explicit-any
@@ -87,11 +95,11 @@ async function confirmacion(body: any) {
   if (!to) return { ok: false, motivo: 'Esta reserva no tiene un correo asociado' };
   if (r.conf_enviada && !body.reenviar) return { ok: true, ya_enviado: true };
   const c = await cfg(), { nombre, tabla } = detalles(r), url = appUrl(c);
-  const html = layout(c, 'Tu reserva está confirmada ✅', `<p style="font-size:15px;line-height:1.5">Hola <b>${esc(nombre)}</b>, estos son los detalles de tu reserva:</p>${tabla}${qrImg(r)}
+  const html = layout(c, 'Tu reserva está confirmada', `<p style="font-size:15px;line-height:1.5">Hola <b>${esc(nombre)}</b>, estos son los detalles de tu reserva:</p>${tabla}${qrImg(r)}
     <p style="font-size:14px;line-height:1.5;color:#3b4763">Al llegar, el administrador puede <b>escanear este QR</b> para iniciar el conteo de tu tiempo de juego (es opcional: también puede iniciarlo manualmente). Te enviaremos un recordatorio 10 minutos antes.</p>${url ? boton(url, 'Abrir la aplicación') : ''}`);
   const text = `Tu reserva está confirmada\n\nSede: ${r.sedes?.nombre}\nCancha: ${r.canchas?.nombre}\nFecha: ${cap(fechaLarga(r.fecha))}\nHora: ${hh(r.hora)} a ${hh(r.hora + 1)}\nCódigo: ${String(r.id).slice(0, 8).toUpperCase()}\n\nMuestra el código QR al administrador al llegar.`;
   const asunto = `Reserva confirmada - ${nombreCancha(r)} - ${fechaCorta(r.fecha)}, ${hh(r.hora)}`;
-  await sendMail(c, to, asunto, html, text);
+  await sendMail(c, to, asunto, html, text, await qrAdjunto(r, c));
   await sb.from('reservas').update({ conf_enviada: true }).eq('id', r.id);
   return { ok: true, asunto: ascii(asunto) };
 }
@@ -107,8 +115,8 @@ async function recordatorios() {
     if (!to || tarde) { await sb.from('reservas').update({ recordatorio_enviado: true }).eq('id', r.id); omitidos++; continue; }
     try {
       const { nombre, tabla } = detalles(r);
-      const html = layout(c, '⏰ Tu reserva empieza en 10 minutos', `<p style="font-size:15px;line-height:1.5">Hola <b>${esc(nombre)}</b>, te recordamos tu reserva de hoy:</p>${tabla}${qrImg(r)}${url ? boton(url, 'Abrir la aplicación') : ''}`);
-      await sendMail(c, to, `Recordatorio: tu reserva empieza en 10 minutos - ${nombreCancha(r)} - ${hh(r.hora)}`, html, `Tu reserva empieza en 10 minutos.\n\nSede: ${r.sedes?.nombre}\nCancha: ${r.canchas?.nombre}\nFecha: ${cap(fechaLarga(r.fecha))}\nHora: ${hh(r.hora)} a ${hh(r.hora + 1)}`);
+      const html = layout(c, 'Tu reserva empieza en 10 minutos', `<p style="font-size:15px;line-height:1.5">Hola <b>${esc(nombre)}</b>, te recordamos tu reserva de hoy:</p>${tabla}${qrImg(r)}${url ? boton(url, 'Abrir la aplicación') : ''}`);
+      await sendMail(c, to, `Recordatorio: tu reserva empieza en 10 minutos - ${nombreCancha(r)} - ${hh(r.hora)}`, html, `Tu reserva empieza en 10 minutos.\n\nSede: ${r.sedes?.nombre}\nCancha: ${r.canchas?.nombre}\nFecha: ${cap(fechaLarga(r.fecha))}\nHora: ${hh(r.hora)} a ${hh(r.hora + 1)}`, await qrAdjunto(r, c));
       await sb.from('reservas').update({ recordatorio_enviado: true }).eq('id', r.id); enviados++;
     } catch (e) { errores.push(`${r.id}: ${(e as Error).message}`); }   // se reintenta en el siguiente minuto
   }
@@ -122,7 +130,7 @@ async function espera(body: any) {
   if (startMs(fecha, hora) <= Date.now()) return { ok: true, enviados: 0, motivo: 'El horario ya pasó' };
   const { data: ocupada } = await sb.from('reservas').select('id').eq('court_id', court_id).eq('fecha', fecha).eq('hora', hora).eq('estado', 'confirmada').limit(1);
   if (ocupada?.length) return { ok: true, enviados: 0, motivo: 'La cancha sigue ocupada' };
-  const { data: cancha } = await sb.from('canchas').select('nombre,precio_hora,sedes(nombre,ciudad)').eq('id', court_id).single();
+  const { data: cancha } = await sb.from('canchas').select('nombre,precio_hora,precio_noche,sedes(nombre,ciudad)').eq('id', court_id).single();
   const { data: lista } = await sb.from('lista_espera').select('*').eq('court_id', court_id).eq('fecha', fecha).eq('hora', hora).eq('estado', 'esperando').order('created_at');
   const c = await cfg(), url = appUrl(c); let enviados = 0; const errores: string[] = [];
   for (const e of lista ?? []) {
@@ -131,9 +139,9 @@ async function espera(body: any) {
       const sede = (cancha as any)?.sedes;
       const tabla = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #e3e8f5;border-bottom:1px solid #e3e8f5;margin:10px 0">
         ${fila('Sede', esc(sede?.nombre) + (sede?.ciudad ? ' · ' + esc(sede.ciudad) : ''))}${fila('Cancha', esc(cancha?.nombre))}
-        ${fila('Fecha', esc(cap(fechaLarga(fecha))))}${fila('Hora', `${hh(hora)} a ${hh(hora + 1)}`)}${fila('Valor', money(cancha?.precio_hora ?? 0))}</table>`;
+        ${fila('Fecha', esc(cap(fechaLarga(fecha))))}${fila('Hora', `${hh(hora)} a ${hh(hora + 1)}`)}${fila('Valor', money((cancha?.precio_noche > 0 && hora >= 18) ? cancha.precio_noche : (cancha?.precio_hora ?? 0)))}</table>`;
       const link = url ? `${url}#/tomar/${e.token}` : '';
-      const html = layout(c, '🎾 ¡Se liberó una cancha!', `<p style="font-size:15px;line-height:1.5">Hola${e.nombre ? ` <b>${esc(e.nombre)}</b>` : ''}, estabas en la lista de espera y <b>se liberó</b> este horario:</p>${tabla}
+      const html = layout(c, '¡Se liberó una cancha!', `<p style="font-size:15px;line-height:1.5">Hola${e.nombre ? ` <b>${esc(e.nombre)}</b>` : ''}, estabas en la lista de espera y <b>se liberó</b> este horario:</p>${tabla}
         <p style="font-size:14px;line-height:1.5;color:#3b4763">La reserva es para quien la tome primero. Pulsa el botón para ver el horario y confirmar si deseas tomarla.</p>${link ? boton(link, 'Ver y tomar la reserva') : '<p style="color:#b3261e">El administrador aún no configuró la dirección de la aplicación.</p>'}`);
       const nom = `${ascii(cancha?.nombre)}${sede?.nombre ? ' (' + ascii(sede.nombre) + ')' : ''}`;
       await sendMail(c, e.correo, `Se libero una cancha - ${nom} - ${fechaCorta(fecha)}, ${hh(hora)}`, html, `Se liberó ${cancha?.nombre}${sede?.nombre ? ' (' + sede.nombre + ')' : ''} el ${fechaLarga(fecha)} a las ${hh(hora)}.\n\nToma la reserva aquí: ${link}`);
