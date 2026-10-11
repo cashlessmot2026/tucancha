@@ -62,7 +62,7 @@ input[type=color].in{padding:3px;height:44px}
 .shell{display:flex;min-height:100vh}
 .side{width:236px;padding:18px 12px;border-right:1px solid var(--line);background:#071024;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px;overflow:auto;flex-shrink:0}
 .brand{font:800 22px var(--fh);padding:6px 12px 18px;display:flex;align-items:center;gap:10px}
-.brand i{width:30px;height:30px;border-radius:50% 50% 50% 8px;background:var(--lime);display:inline-block;transform:rotate(-45deg)}
+.brand i{width:34px;height:34px;display:inline-block;flex-shrink:0;background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='30' fill='%23fff' stroke='%230b1220' stroke-width='2.5'/><polygon points='32,20 43,28 39,41 25,41 21,28' fill='%230b1220'/><g stroke='%230b1220' stroke-width='2.4' fill='none' stroke-linecap='round'><path d='M32 20V7M43 28l12-5M39 41l8 10M25 41l-8 10M21 28L9 23'/><path d='M32 7l10 3M32 7l-10 3M55 23l1 10M55 23l-6-8M47 51l-10 5M47 51l8-9M17 51l10 5M17 51l-8-9M9 23l-1 10M9 23l6-8'/></g></svg>") center/contain no-repeat;filter:drop-shadow(0 0 6px #b8f22a55)}
 .brand span b{color:var(--lime)}
 .brand{font-size:20px;line-height:1.1}
 .brand .bn{display:flex;flex-direction:column;min-width:0}
@@ -105,17 +105,24 @@ input[type=color].in{padding:3px;height:44px}
 .hero h1{font-size:clamp(44px,6vw,84px);line-height:.95;font-weight:800}
 .hero h1 b{color:var(--lime)}
 .hero p{max-width:420px;margin-top:18px;color:#a9b9de;font-size:17px}
-.court{margin-top:38px;width:min(380px,100%);aspect-ratio:2/1;border:2px solid #ffffff33;border-radius:10px;position:relative;background:#1546b8}
-.court:before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:3px solid #ffffff55}
-.court:after{content:"";position:absolute;left:14%;right:14%;top:50%;border-top:2px solid #ffffff44}
-.court i{position:absolute;width:16px;height:16px;border-radius:50%;background:var(--lime);left:62%;top:30%;box-shadow:0 0 22px 4px #b8f22a77}
+.fslider{position:relative;width:min(520px,100%);aspect-ratio:16/9;border-radius:18px;overflow:hidden;border:1px solid #ffffff2a;background:#0a1530;box-shadow:0 18px 50px #0007}
+.hero .fslider{margin-top:34px}
+.fslider.wide{width:100%;aspect-ratio:21/8;margin-bottom:16px}
+.fs{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.06);transition:opacity 1s ease,transform 5s ease}
+.fs.on{opacity:1;transform:scale(1)}
+.fslider:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 45%,#030a18cc)}
+.fcap{position:absolute;left:16px;bottom:30px;right:16px;z-index:2;font:800 clamp(15px,2.2vw,22px) var(--fh);color:#fff;text-shadow:0 2px 10px #000a}
+.fcap small{display:block;font:500 12.5px var(--fb);color:#d8e6ff;margin-top:3px}
+.fdots{position:absolute;left:0;right:0;bottom:10px;z-index:2;display:flex;justify-content:center;gap:6px}
+.fdots i{width:7px;height:7px;border-radius:50%;background:#ffffff66;transition:all .3s}
+.fdots i.on{width:20px;border-radius:6px;background:var(--lime)}
 .formwrap{padding:40px;display:grid;place-items:center}
 .authcard{width:100%;max-width:410px}
 .tabs{display:flex;background:#0a1530;border:1px solid var(--line);border-radius:14px;padding:4px;margin-bottom:8px}
 .tabs button{flex:1;padding:10px;border-radius:10px;font-weight:700;color:var(--mut)}
 .tabs button.on{background:var(--card2);color:var(--txt)}
 .link{color:var(--lime);font-weight:600;font-size:14px;text-decoration:underline;text-underline-offset:3px}
-@media(max-width:820px){.auth{grid-template-columns:1fr}.hero{padding:32px 24px;border:0}.court{display:none}.formwrap{padding:20px}}
+@media(max-width:820px){.auth{grid-template-columns:1fr}.hero{padding:32px 24px;border:0}.hero .fslider{margin-top:20px}.formwrap{padding:20px}}
 
 /* modal, toast, popup */
 .mbg{position:fixed;inset:0;background:#02060fcc;backdrop-filter:blur(4px);z-index:100;display:grid;place-items:center;padding:16px;overflow:auto}
@@ -496,7 +503,7 @@ function closeModal() { stopCam(); $('#modal')?.remove(); if (typeof S !== 'unde
    ESTADO
    ===================================================================== */
 const S = { user: null, view: null, sedes: [], courts: [], rankings: [], sedeId: null, fecha: today(), rk: { sede: 'all', cat: 'all' }, mid: null, match: null, tmpImg: null, users: null, usersAt: 0, cfg: {}, tid: null };
-const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('padel-marcador') : null;
+const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('tucancha-marcador') : null;
 
 async function loadBase() {
   const [a, b, c, cf] = await Promise.all([
@@ -526,6 +533,14 @@ function sedeSel() {
 /* =====================================================================
    PWA (manifiesto en línea)
    ===================================================================== */
+/* Slider automático de juegos de fútbol (login y pantalla de inicio) */
+const SLIDES = [['img/juego1.jpg', 'Reserva tu cancha sintética', 'Por horas, de día o de noche'], ['img/juego2.jpg', 'Partidos bajo las luces', 'Canchas iluminadas hasta tarde'], ['img/juego3.jpg', 'Fútbol 5, 7, 8 y Microfútbol', 'Elige la cancha de tu parche'], ['img/juego4.jpg', 'Arma tu equipo', 'Encuentros, retos y torneos'], ['img/juego5.jpg', 'Vive el juego', 'Suma puntos y sube de categoría'], ['img/juego6.jpg', 'Tu partido, tu cancha', 'Reserva en segundos']];
+const sliderHtml = (cls = '') => `<div class="fslider ${cls}" aria-hidden="true">${SLIDES.map((s, i) => `<div class="fs ${i ? '' : 'on'}" style="background-image:url('${s[0]}')"></div>`).join('')}<div class="fcap" id="fcap">${SLIDES[0][1]}<small>${SLIDES[0][2]}</small></div><div class="fdots">${SLIDES.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
+setInterval(() => document.querySelectorAll('.fslider').forEach(el => {
+  const s = [...el.querySelectorAll('.fs')], d = [...el.querySelectorAll('.fdots i')]; if (s.length < 2) return;
+  let i = s.findIndex(x => x.classList.contains('on')); s[i]?.classList.remove('on'); d[i]?.classList.remove('on'); i = (i + 1) % s.length;
+  s[i].classList.add('on'); d[i].classList.add('on'); const c = el.querySelector('.fcap'); if (c) c.innerHTML = `${SLIDES[i][1]}<small>${SLIDES[i][2]}</small>`;
+}), 4000);
 /* Marca del club: nombre y logo editables por el admin (tabla ajustes) */
 const appName = () => (S.cfg.nombre_app || DEF_NAME).trim();
 const appLogo = () => (S.cfg.logo && IMG_OK.test(S.cfg.logo)) ? S.cfg.logo : '';
@@ -562,7 +577,7 @@ A.go = d => { if (d.v === 'torneos') S.tid = null; go(d.v); };
 
 /* ---- Idioma: botones ES / EN / PT / FR (traducen toda la página con Google Translate oculto) ---- */
 const LANGS = [['es', 'ES'], ['en', 'EN'], ['pt', 'PT'], ['fr', 'FR']];
-const curLang = () => { try { return localStorage.getItem('padel_lang') || 'es'; } catch (_) { return 'es'; } };
+const curLang = () => { try { return localStorage.getItem('tucancha_lang') || 'es'; } catch (_) { return 'es'; } };
 const langBtns = () => `<div class="lang" translate="no">${LANGS.map(l => `<button data-a="lang" data-l="${l[0]}" class="${curLang() === l[0] ? 'on' : ''}" title="${l[1]}">${l[1]}</button>`).join('')}</div>`;
 function gtCookie(l) {
   const val = l === 'es' ? '' : `/es/${l}`, exp = l === 'es' ? '; expires=Thu, 01 Jan 1970 00:00:00 GMT' : '';
@@ -576,7 +591,7 @@ window.gtInit = () => { try { new google.translate.TranslateElement({ pageLangua
 })();
 A.lang = d => {
   const l = d.l; if (l === curLang()) return;
-  try { localStorage.setItem('padel_lang', l); } catch (_) {}
+  try { localStorage.setItem('tucancha_lang', l); } catch (_) {}
   gtCookie(l);
   const c = document.querySelector('select.goog-te-combo');
   if (c && l !== 'es') { c.value = l; c.dispatchEvent(new Event('change')); $$('.lang button').forEach(b => b.classList.toggle('on', b.dataset.l === l)); }
@@ -596,7 +611,7 @@ async function boot() {
     $('#app').innerHTML = `<div class="formwrap" style="min-height:100vh"><div class="card authcard"><h2>No se pudo conectar</h2><p class="muted mt">${esc(e.message)}</p><p class="mt">Ejecuta el archivo <b>schema.sql</b> en el SQL Editor de Supabase y recarga esta página.</p></div></div>`;
     return;
   }
-  const uid = localStorage.getItem('padel_uid');
+  const uid = localStorage.getItem('tucancha_uid');
   if (uid) { try { const u = await db(T('app_users').select(UC).eq('id', uid).maybeSingle()); if (u) S.user = u; } catch (_) {} }
   S.user ? enterApp() : authScreen();
 }
@@ -612,7 +627,7 @@ function authScreen(tab = 'login') {
       <div class="brand" translate="no" style="padding:0 0 28px">${brandHtml()}</div>
       <h1>Tu cancha,<br>tu equipo,<br><b>tu partido.</b></h1>
       <p>Reserva tu cancha sintética por horas, arma partidos de fútbol y microfútbol, suma 3 puntos por cada victoria y sube de categoría.</p>
-      <div class="court"><i></i></div>
+      ${sliderHtml()}
     </div>
     <div class="formwrap"><div class="authcard">
       <div class="tabs">
@@ -647,7 +662,7 @@ A.login = async () => {
   const ced2 = await cedulaDe(ced);
   const u = ced2 && await db(sb.rpc('app_login', { p_cedula: ced2, p_hash: await sha(ced2 + ':' + pw) }));
   if (!u) throw new Error('Cédula, correo o contraseña incorrecta');
-  S.user = u; localStorage.setItem('padel_uid', u.id); await loadBase(); enterApp();
+  S.user = u; localStorage.setItem('tucancha_uid', u.id); await loadBase(); enterApp();
 };
 A.register = async () => {
   const nombre = $('#r_nom').value.trim(), ced = $('#r_ced').value.trim(), tel = $('#r_tel').value.trim(), mail = $('#r_mail').value.trim(), pw = $('#r_pw').value;
@@ -658,7 +673,7 @@ A.register = async () => {
   if (pw.length < 6) throw new Error('La contraseña debe tener al menos 6 caracteres');
   if (pw !== $('#r_pw2').value) throw new Error('Las contraseñas no coinciden');
   const u = await db(sb.rpc('app_register', { p_nombre: nombre, p_cedula: ced, p_telefono: tel, p_correo: mail, p_hash: await sha(ced + ':' + pw), p_sede: $('#r_sede').value || null }));
-  S.user = u; localStorage.setItem('padel_uid', u.id); await loadBase(); toast('¡Cuenta creada! Bienvenido/a', 'ok'); enterApp();
+  S.user = u; localStorage.setItem('tucancha_uid', u.id); await loadBase(); toast('¡Cuenta creada! Bienvenido/a', 'ok'); enterApp();
 };
 A.recOpen = () => modal(`<h2>Recuperar contraseña</h2><p class="muted">Escribe tu cédula o correo. Te mostraremos una contraseña temporal durante 3 segundos.</p>
   <label class="f">Cédula o correo</label><input class="in" id="rc_ced" autocapitalize="none" data-enter="recGo"><button class="btn full mt" data-a="recGo">Recuperar</button>`);
@@ -686,7 +701,7 @@ async function guardarFoto(foto) {
 C.perfilFoto = async (v, el) => { const f = el.files[0]; if (!f) return; await guardarFoto(await fitImg(f, 160, true, 'image/jpeg', .72)); };
 A.perfilQuitar = () => guardarFoto(null);
 
-A.logout = () => { pushQuitar(); localStorage.removeItem('padel_uid'); S.user = null; clearInterval(S.poll); authScreen(); };
+A.logout = () => { pushQuitar(); localStorage.removeItem('tucancha_uid'); S.user = null; clearInterval(S.poll); authScreen(); };
 
 /* =====================================================================
    SHELL DE LA APP
@@ -860,12 +875,12 @@ async function pushQuitar() {
 }
 function pushBanner() {
   if (!pushOk() || Notification.permission !== 'default' || $('#pushBn')) return;
-  try { if (localStorage.getItem('padel_push_no')) return; } catch (_) {}
+  try { if (localStorage.getItem('tucancha_push_no')) return; } catch (_) {}
   $('#view')?.insertAdjacentHTML('beforebegin', `<div class="audio" id="pushBn" style="display:block;background:#0f2a22;border-color:#1f6b4c;color:#b8f5dc">🔔 Activa las notificaciones para recibir avisos <b>aunque la app esté cerrada</b>. <span class="row" style="display:inline-flex;margin-left:6px"><button class="btn sm" data-a="pushOn">Activar</button><button class="btn sec sm" data-a="pushNo">Ahora no</button></span></div>`);
 }
 A.pushOn = async () => { await pushEnable(); closeModal(); };
 A.pushOff = async () => { await pushQuitar(); toast('Notificaciones desactivadas en este dispositivo'); closeModal(); };
-A.pushNo = () => { try { localStorage.setItem('padel_push_no', '1'); } catch (_) {} $('#pushBn')?.remove(); };
+A.pushNo = () => { try { localStorage.setItem('tucancha_push_no', '1'); } catch (_) {} $('#pushBn')?.remove(); };
 async function pushEstadoHtml() {
   if (!pushOk()) return '<div class="fac"><small>📵 Este dispositivo no admite avisos con la app cerrada. En iPhone: instala la app (Compartir → “Añadir a pantalla de inicio”) y ábrela desde el ícono.</small></div>';
   let sub = null; try { sub = await (swReg || await navigator.serviceWorker.ready).pushManager.getSubscription(); } catch (_) {}
@@ -907,6 +922,7 @@ V.home = async () => {
   const pct = next ? Math.min(100, Math.round((u.puntos - cat.min_puntos) / (next.min_puntos - cat.min_puntos) * 100)) : 100;
   const tile = (v, i, t, s) => `<button class="tile" data-a="go" data-v="${v}">${ic(i)}<b>${t}</b><small>${s}</small></button>`;
   return `
+  ${sliderHtml('wide')}
   <div class="grid g2">
     <div class="card"><div class="pl">${avatar(u, 'lg')}<div><h3 style="margin:0">Hola, ${esc(u.nombre.split(' ')[0])}</h3>${catBadge(u.puntos)}</div></div>
       <div class="row between mt"><b style="font:800 30px var(--fh)">${u.puntos} <small>puntos</small></b><small>${u.victorias} victorias · ${u.partidos} partidos</small></div>
@@ -2287,7 +2303,7 @@ C.userSede = async (v, el) => {
 /* ---------- PUBLICIDAD ---------- */
 /* Avisos del club: llegan a la campanita de los jugadores como notificación normal y, si activaron los avisos,
    también como notificación push (aunque tengan la app cerrada o en segundo plano). La sesión ya queda guardada
-   en el navegador (localStorage.padel_uid) y el dispositivo suscrito a push no se olvida al cerrar la app. */
+   en el navegador (localStorage.tucancha_uid) y el dispositivo suscrito a push no se olvida al cerrar la app. */
 V.publicidad = async () => {
   const ps = await db(T('publicidad').select('id,titulo,mensaje,imagen,enviados,created_at,sedes(nombre)').order('created_at', { ascending: false }).limit(30));
   let pops = []; try { pops = await db(T('pop_ads').select('id,imagen,enlace,formato,segundos,activo,sede_id,orden,sedes(nombre)').order('orden').order('created_at')); } catch (_) {}
@@ -2372,7 +2388,7 @@ function popShow(list) {
 // Al entrar el jugador a su cuenta (una vez por sesión del navegador) se muestran los anuncios activos de su sede
 async function popEntrada() {
   if (!S.user || isAdm()) return;
-  try { if (sessionStorage.getItem('padel_pop_' + S.user.id)) return; sessionStorage.setItem('padel_pop_' + S.user.id, '1'); } catch (_) {}
+  try { if (sessionStorage.getItem('tucancha_pop_' + S.user.id)) return; sessionStorage.setItem('tucancha_pop_' + S.user.id, '1'); } catch (_) {}
   try {
     const l = (await db(T('pop_ads').select('*').eq('activo', true).order('orden').order('created_at'))).filter(a => !a.sede_id || a.sede_id === S.user.sede_id);
     if (l.length) popShow(l);
@@ -2971,7 +2987,7 @@ async function projector(id) {
    No repite la regla del juego: solo llama a marcador_anotar (ver drenarColaMarcador).
    ===================================================================== */
 async function relojScreen(id) {
-  document.title = 'Anotar · ' + (S.cfg?.nombre_app || 'Cashless-Sport');
+  document.title = 'Anotar · ' + (S.cfg?.nombre_app || 'TuCancha');
   const el = $('#app'), sel = 'id,equipo1,equipo2,sets,puntos,tiebreak,status,ganador';
   const draw = m => {
     if (!m) { el.innerHTML = `<div class="relojwrap"><p>Partido no encontrado.</p></div>`; return; }
