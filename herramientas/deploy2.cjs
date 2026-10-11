@@ -1,6 +1,6 @@
 // node deploy2.cjs <slug> <carpeta con index.ts>   (verify_jwt desactivado: la llaman triggers y el navegador)
 const fs = require('fs'), path = require('path');
-const TOK = process.env.SB_TOKEN, REF = 'oshhdrnkegmhnasgwbpg';
+const TOK = process.env.SB_TOKEN, REF = 'cmnympltpkxbrxqvgter';
 (async () => {
   const [slug, dir] = [process.argv[2], path.resolve(process.argv[3])];
   const fd = new FormData();
