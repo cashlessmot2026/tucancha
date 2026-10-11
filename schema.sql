@@ -1168,3 +1168,42 @@ drop policy if exists "abierto" on pop_ads;
 create policy "abierto" on pop_ads for all to anon using (true) with check (true);   -- modelo abierto, igual que el resto de tablas
 grant select, insert, update, delete on pop_ads to anon;
 notify pgrst, 'reload schema';
+
+-- =====================================================================
+--  CUENTA DE CONSUMO POR RESERVA  +  BANNER EDITABLE  (TuCancha)
+-- =====================================================================
+alter table reservas add column if not exists cuenta_estado text not null default 'abierta';
+alter table reservas add column if not exists cuenta_total numeric(14,2);
+alter table reservas add column if not exists cuenta_metodo text;
+alter table reservas add column if not exists cuenta_pagada_at timestamptz;
+
+create table if not exists cuenta_items (
+  id uuid primary key default gen_random_uuid(),
+  reserva_id uuid not null references reservas(id) on delete cascade,
+  producto_id uuid references productos(id) on delete set null,
+  nombre text not null,
+  precio numeric(12,2) not null default 0,
+  cantidad int not null default 1 check (cantidad > 0),
+  created_by uuid references app_users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+create index if not exists cuenta_items_reserva on cuenta_items (reserva_id);
+alter table cuenta_items enable row level security;
+drop policy if exists "abierto" on cuenta_items;
+create policy "abierto" on cuenta_items for all to anon using (true) with check (true);
+grant select, insert, update, delete on cuenta_items to anon;
+
+create table if not exists banner (
+  id uuid primary key default gen_random_uuid(),
+  imagen text not null,              -- data URL (JPG reducido) o URL pública
+  titulo text,
+  subtitulo text,
+  orden int not null default 0,
+  activo boolean not null default true,
+  created_at timestamptz not null default now()
+);
+alter table banner enable row level security;
+drop policy if exists "abierto" on banner;
+create policy "abierto" on banner for all to anon using (true) with check (true);
+grant select, insert, update, delete on banner to anon;
+notify pgrst, 'reload schema';

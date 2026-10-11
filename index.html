@@ -308,6 +308,11 @@ details.card>summary::after{content:"▾";color:var(--mut);transition:transform 
 details.card[open]>summary::after{transform:rotate(180deg)}
 details.card>.dbody{padding:0 18px 18px}
 .fac{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;background:#0b1530}
+.fin5{border-color:#ff4d4d!important;background:#3a0d14!important;animation:fin5 1.1s ease-in-out infinite alternate}
+@keyframes fin5{from{box-shadow:0 0 0 1px #ff4d4d55}to{box-shadow:0 0 22px 4px #ff4d4d99}}
+.fin5 .ck{color:#ffb3b3;font-weight:800}
+.cta td{padding:6px 4px;border-bottom:1px solid var(--line);font-size:14px}
+.banth{aspect-ratio:16/9;border-radius:10px;background-size:cover;background-position:center;border:1px solid var(--line)}
 .fac.venc{border-color:#7a2a40}
 /* torneos · llaves */
 .brk{display:flex;gap:30px;overflow-x:auto;padding:6px 4px 16px;align-items:stretch}
@@ -506,13 +511,14 @@ const S = { user: null, view: null, sedes: [], courts: [], rankings: [], sedeId:
 const bc = ('BroadcastChannel' in window) ? new BroadcastChannel('tucancha-marcador') : null;
 
 async function loadBase() {
-  const [a, b, c, cf] = await Promise.all([
+  const [a, b, c, cf, bn] = await Promise.all([
     db(T('sedes').select('*').eq('activa', true).order('nombre')),
     db(T('canchas').select('*').eq('activa', true).order('nombre')),
     db(T('rankings').select('*').order('orden')),
-    db(T('ajustes').select('*')).catch(() => [])
+    db(T('ajustes').select('*')).catch(() => []),
+    db(T('banner').select('*').eq('activo', true).order('orden').order('created_at')).catch(() => [])
   ]);
-  S.sedes = a; S.courts = b; S.rankings = c;
+  S.sedes = a; S.courts = b; S.rankings = c; S.banner = bn;
   S.cfg = Object.fromEntries(cf.map(x => [x.clave, x.valor])); applyBrand();
   if (!S.sedeId || !a.find(x => x.id === S.sedeId)) S.sedeId = S.user?.sede_id || a[0]?.id || null;
 }
@@ -535,11 +541,12 @@ function sedeSel() {
    ===================================================================== */
 /* Slider automático de juegos de fútbol (login y pantalla de inicio) */
 const SLIDES = [['img/juego1.jpg', 'Canchas sintéticas de microfútbol', 'Alquiler por horas, reserva en segundos'], ['img/juego2.jpg', 'Canchas cubiertas y cerradas', 'Juega sin importar el clima'], ['img/juego3.jpg', 'Microfútbol y Fútbol 5', 'Tu cancha por 1 hora o más'], ['img/juego4.jpg', 'Césped sintético de calidad', 'Cuidado y mantenimiento constante'], ['img/juego5.jpg', 'Canchas con iluminación', 'Reserva de día o de noche'], ['img/juego6.jpg', 'Arma tu parche', 'Escoge hora, cancha y a jugar']];
-const sliderHtml = (cls = '') => `<div class="fslider ${cls}" aria-hidden="true">${SLIDES.map((s, i) => `<div class="fs ${i ? '' : 'on'}" style="background-image:url('${s[0]}')"></div>`).join('')}<div class="fcap" id="fcap">${SLIDES[0][1]}<small>${SLIDES[0][2]}</small></div><div class="fdots">${SLIDES.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
+const curSlides = () => (typeof S !== 'undefined' && S.banner && S.banner.length) ? S.banner.map(b => [b.imagen, esc(b.titulo || ''), esc(b.subtitulo || '')]) : SLIDES;   // imágenes del admin o las de fábrica
+const sliderHtml = (cls = '') => { const L = curSlides(); return `<div class="fslider ${cls}" aria-hidden="true">${L.map((s, i) => `<div class="fs ${i ? '' : 'on'}" style="background-image:url('${s[0]}')"></div>`).join('')}<div class="fcap">${L[0][1]}<small>${L[0][2]}</small></div><div class="fdots">${L.length > 1 ? L.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('') : ''}</div></div>`; };
 setInterval(() => document.querySelectorAll('.fslider').forEach(el => {
   const s = [...el.querySelectorAll('.fs')], d = [...el.querySelectorAll('.fdots i')]; if (s.length < 2) return;
   let i = s.findIndex(x => x.classList.contains('on')); s[i]?.classList.remove('on'); d[i]?.classList.remove('on'); i = (i + 1) % s.length;
-  s[i].classList.add('on'); d[i].classList.add('on'); const c = el.querySelector('.fcap'); if (c) c.innerHTML = `${SLIDES[i][1]}<small>${SLIDES[i][2]}</small>`;
+  s[i].classList.add('on'); d[i].classList.add('on'); const c = el.querySelector('.fcap'), L = curSlides(); if (c && L[i]) c.innerHTML = `${L[i][1]}<small>${L[i][2]}</small>`;
 }), 4000);
 /* Marca del club: nombre y logo editables por el admin (tabla ajustes) */
 const appName = () => (S.cfg.nombre_app || DEF_NAME).trim();
@@ -963,7 +970,7 @@ V.reservar = async () => {
   ${agentCard()}
   ${adm ? `<div class="card"><div class="row between"><h3 style="margin:0">Reservas en curso</h3><div class="row"><label class="fl" style="cursor:pointer"><input type="checkbox" data-c="autoIni" ${S.cfg.inicio_auto === '1' ? 'checked' : ''}> Inicio automático del contador</label><button class="btn sm" data-a="scanOpen">📷 Escanear QR</button></div></div>
     ${live.length ? live.map(r => { const c = rsvClock(r); return `<div class="fac"><div class="row between"><div><b>${esc(r.canchas?.nombre)}</b> · ${hh(r.hora)}<br><small>${esc(r.nombre_cliente || r.app_users?.nombre || 'Reservada')}</small></div><div style="text-align:right">${clockHtml(r)}</div></div>
-      <div class="row mt">${c.estado === 'pendiente' ? `<button class="btn sm" data-a="rsvStart" data-id="${r.id}">▶ Iniciar ahora</button>` : ''}${c.estado === 'en_uso' ? `<button class="btn sec sm" data-a="rsvEnd" data-id="${r.id}">■ Finalizar</button>` : ''}<button class="btn sec sm" data-a="rsvInfo" data-id="${r.id}">Detalles</button></div></div>`; }).join('') : '<p class="muted mt"><small>No hay reservas en curso ni por iniciar en esta sede. Las reservas aparecen aquí desde 15 minutos antes de su hora.</small></p>'}
+      <div class="row mt">${c.estado === 'pendiente' ? `<button class="btn sm" data-a="rsvStart" data-id="${r.id}">▶ Iniciar ahora</button>` : ''}${c.estado === 'en_uso' ? `<button class="btn sec sm" data-a="rsvEnd" data-id="${r.id}">■ Finalizar</button>` : ''}<button class="btn sec sm" data-a="rsvInfo" data-id="${r.id}">🧾 Cuenta y detalles</button></div></div>`; }).join('') : '<p class="muted mt"><small>No hay reservas en curso ni por iniciar en esta sede. Las reservas aparecen aquí desde 15 minutos antes de su hora.</small></p>'}
     <p class="muted mt"><small>${S.cfg.inicio_auto === '1' ? 'El contador de cada reserva empieza solo a la hora reservada.' : 'El contador empieza cuando escaneas el QR o pulsas “Iniciar ahora”.'}</small></p></div>` : ''}
   <h3 class="${adm ? 'mt2' : ''}" style="margin-bottom:8px">${adm ? 'Sede' : '¿En qué sede quieres reservar?'}</h3>
   <div class="filters">${S.sedes.map(s => `<button class="fl ${s.id === sede.id ? 'on' : ''}" data-a="setSede" data-id="${s.id}">${esc(s.nombre)}${s.ciudad ? ' · ' + esc(s.ciudad) : ''}${adm && s.id === S.user.sede_id ? ' (mi sede)' : ''}</button>`).join('')}</div>
@@ -1040,14 +1047,33 @@ function clockHtml(r) {
   const c = rsvClock(r);
   if (c.estado === 'finalizada') return '<span class="st entregada">Finalizada</span>';
   if (c.estado === 'sin_uso') return '<span class="st">Sin uso</span>';
-  return `<span class="ck" data-ck data-s="${c.estado === 'en_uso' ? c.ini : c.s}" data-e="${c.e}" ${c.estado === 'pendiente' ? 'data-p="1"' : ''}>…</span>`;
+  return `<span class="ck" data-ck data-id="${r.id}" data-cn="${esc(r.canchas?.nombre || '')}" data-s="${c.estado === 'en_uso' ? c.ini : c.s}" data-e="${c.e}" ${c.estado === 'pendiente' ? 'data-p="1"' : ''}>…</span>`;
 }
+const AVISO_MS = 5 * 60000;
+const AVISO5 = new Set((() => { try { return JSON.parse(localStorage.getItem('tucancha_av5') || '[]'); } catch (_) { return []; } })());
+function aviso5(id, cancha) {   // una sola vez por reserva (también si se recarga la página)
+  if (!id || AVISO5.has(id)) return; AVISO5.add(id);
+  try { localStorage.setItem('tucancha_av5', JSON.stringify([...AVISO5].slice(-300))); } catch (_) {}
+  const n = String(cancha || 'cancha').replace(/\s*·\s*/g, ', '), t = `Faltan 5 minutos para terminar en la ${/^cancha/i.test(n) ? n : 'cancha ' + n}`;
+  try { tone([880, 660, 880, 660], .6); } catch (_) {} say(t); toast('⏰ ' + t, 'warn');
+}
+/* El admin recibe el aviso de voz esté en la vista que esté (revisa las reservas en curso cada 30 s). */
+setInterval(async () => {
+  if (typeof S === 'undefined' || !S.user || !isAdm()) return;
+  try {
+    const rs = await db(T('reservas').select('id,fecha,hora,uso,inicio_real,fin_real,canchas(nombre)').eq('fecha', today()).eq('estado', 'confirmada'));
+    const n = Date.now(); rs.forEach(r => { const c = rsvClock(r); if (c.estado === 'en_uso' && c.e - n <= AVISO_MS && c.e > n) aviso5(r.id, r.canchas?.nombre); });
+  } catch (_) {}
+}, 30000);
 const fmtHMS = ms => { const t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60; return (h ? h + ':' + pad(m) : pad(m)) + ':' + pad(s); };
 setInterval(() => {
   const n = Date.now();
   $$('[data-ck]').forEach(el => {
     const s = +el.dataset.s, e = +el.dataset.e;
     el.textContent = n < s ? `Empieza en ${Math.ceil((s - n) / 60000)} min` : n >= e ? 'Finalizada' : el.dataset.p ? 'Por iniciar' : `⏱ ${fmtHMS(n - s)} en uso · quedan ${fmtHMS(e - n)}`;
+    const warn = !el.dataset.p && n >= s && n < e && e - n <= AVISO_MS, card = el.closest('.fac, .card');   // últimos 5 minutos: tarjeta en rojo + voz
+    if (card) card.classList.toggle('fin5', warn);
+    if (warn) aviso5(el.dataset.id, el.dataset.cn);
   });
 }, 1000);
 C.autoIni = async (v, el) => {
@@ -1175,14 +1201,51 @@ A.takeYes = async () => {
   fnCorreos({ accion: 'confirmacion', reserva_id: r.reserva_id }).catch(() => {});
 };
 
+/* ---- Cuenta de consumo: cada reserva tiene una cuenta (alquiler + productos) que el admin cobra al final ---- */
+async function cuentaData(r) {
+  const items = await db(T('cuenta_items').select('*').eq('reserva_id', r.id).order('created_at'));
+  const cancha = precioH(r.canchas || {}, r.hora), consumo = items.reduce((a, i) => a + Number(i.precio) * i.cantidad, 0);
+  return { items, cancha, consumo, total: cancha + consumo };
+}
+function cuentaHtml(r, k, adm, prods) {
+  const pag = r.cuenta_estado === 'pagada';
+  return `<div class="fac"><div class="row between"><b>🧾 Cuenta de la reserva</b>${pag ? `<span class="st aprobada">Pagada · ${esc(METODOS[r.cuenta_metodo] || r.cuenta_metodo || '')}</span>` : '<span class="st en_juego">Abierta</span>'}</div>
+  <table class="cta mt" style="width:100%;border-collapse:collapse"><tr><td>⚽ Alquiler de cancha (1 hora)</td><td></td><td style="text-align:right">${money(k.cancha)}</td><td></td></tr>
+  ${k.items.map(i => `<tr><td>${esc(i.nombre)}</td><td>x${i.cantidad}</td><td style="text-align:right">${money(Number(i.precio) * i.cantidad)}</td><td style="text-align:right">${adm && !pag ? `<button class="btn danger sm" data-a="ctaDel" data-id="${i.id}" data-r="${r.id}" aria-label="Quitar">✕</button>` : ''}</td></tr>`).join('')}
+  <tr><td><b>Total</b></td><td></td><td style="text-align:right"><b style="font-size:17px">${money(pag && r.cuenta_total != null ? r.cuenta_total : k.total)}</b></td><td></td></tr></table>
+  ${adm && !pag ? `${prods.length ? `<div class="row mt" style="flex-wrap:nowrap"><select class="in" id="cta_p">${prods.map(p => `<option value="${p.id}" ${p.stock > 0 ? '' : 'disabled'}>${esc(p.emoji || '')} ${esc(p.nombre)} · ${money(p.precio)}${p.stock > 0 ? '' : ' (agotado)'}</option>`).join('')}</select><input class="in" id="cta_q" type="number" min="1" value="1" style="max-width:76px"><button class="btn sm" data-a="ctaAdd" data-r="${r.id}">+ Agregar</button></div>` : '<p class="muted mt"><small>No hay productos activos en la tienda.</small></p>'}
+  <div class="row mt" style="flex-wrap:nowrap"><select class="in" id="cta_m">${Object.entries(METODOS).map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select><button class="btn blue sm" data-a="ctaPay" data-r="${r.id}">💵 Cobrar ${money(k.total)}</button></div>` : ''}</div>`;
+}
+A.ctaAdd = async d => {
+  const p = (await db(T('productos').select('id,nombre,precio,stock').eq('id', $('#cta_p').value).single())), q = Math.max(1, parseInt($('#cta_q').value) || 1);
+  if (p.stock < q) throw new Error(`Solo quedan ${p.stock} de ${p.nombre}`);
+  await db(T('cuenta_items').insert({ reserva_id: d.r, producto_id: p.id, nombre: p.nombre, precio: p.precio, cantidad: q, created_by: S.user.id }));
+  toast(`Agregado: ${p.nombre} x${q}`, 'ok'); await A.rsvInfo({ id: d.r });
+};
+A.ctaDel = async d => { await db(T('cuenta_items').delete().eq('id', d.id)); await A.rsvInfo({ id: d.r }); };
+A.ctaPay = async d => {
+  const r = await db(T('reservas').select('*,canchas(nombre,precio_hora,precio_noche)').eq('id', d.r).single());
+  if (r.cuenta_estado === 'pagada') throw new Error('Esta cuenta ya fue cobrada');
+  const k = await cuentaData(r), met = $('#cta_m').value;
+  if (!confirm(`¿Cobrar ${money(k.total)} (${METODOS[met]}) y cerrar la cuenta?`)) return;
+  const claim = await db(T('reservas').update({ cuenta_estado: 'pagada', cuenta_total: k.total, cuenta_metodo: met, cuenta_pagada_at: new Date().toISOString() }).eq('id', r.id).neq('cuenta_estado', 'pagada').select('id'));
+  if (!claim.length) throw new Error('Esta cuenta ya fue cobrada');
+  const base = { metodo: met, fecha: today(), sede_id: r.sede_id, created_by: S.user.id }, ref = `${r.canchas?.nombre || 'Cancha'} ${r.fecha} ${hh(r.hora)}`;
+  if (k.cancha > 0) await db(T('ingresos').insert({ ...base, valor: k.cancha, concepto: 'reserva', motivo: 'Alquiler ' + ref }));
+  if (k.consumo > 0) await db(T('ingresos').insert({ ...base, valor: k.consumo, concepto: 'venta', motivo: 'Consumo en ' + ref + ': ' + k.items.map(i => `${i.nombre} x${i.cantidad}`).join(', ').slice(0, 200) }));
+  for (const i of k.items) if (i.producto_id) { const p = await db(T('productos').select('stock').eq('id', i.producto_id).maybeSingle()); if (p) await db(T('productos').update({ stock: Math.max(0, p.stock - i.cantidad) }).eq('id', i.producto_id)); }
+  toast(`💵 Cuenta cobrada: ${money(k.total)} · registrada en Contabilidad`, 'ok'); await A.rsvInfo({ id: r.id });
+};
 A.rsvInfo = async d => {
-  const r = await db(T('reservas').select('*,canchas(nombre),sedes(nombre),app_users(nombre,telefono,correo)').eq('id', d.id).single());
+  const r = await db(T('reservas').select('*,canchas(nombre,precio_hora,precio_noche),sedes(nombre),app_users(nombre,telefono,correo)').eq('id', d.id).single());
   const adm = isAdm(), c = rsvClock(r), mail = r.correo_cliente || r.app_users?.correo, now = Date.now();
+  const [k, prods] = await Promise.all([cuentaData(r), adm ? db(T('productos').select('id,nombre,precio,emoji,stock').eq('activo', true).order('nombre')) : []]);
   const espera = adm ? await db(T('lista_espera').select('id,correo,nombre').eq('court_id', r.court_id).eq('fecha', r.fecha).eq('hora', r.hora).in('estado', ['esperando', 'notificado'])) : [];
   modal(`<h2>${esc(r.canchas?.nombre)}</h2><p class="muted">${esc(r.sedes?.nombre)}<br>${dfc(r.fecha, { weekday:'long', day:'numeric', month:'long' })} · ${hh(r.hora)}</p>
     <p class="mt"><b>${esc(r.nombre_cliente || r.app_users?.nombre || '—')}</b>${r.app_users?.telefono && adm ? `<br><small>Tel. ${esc(r.app_users.telefono)}</small>` : ''}${mail && adm ? `<br><small>${esc(mail)}</small>` : ''}</p>
     <div class="fac"><div class="row between"><b>Tiempo de uso</b>${clockHtml(r)}</div>
       ${adm ? `<div class="row mt">${c.estado === 'pendiente' && now >= c.s - 15 * 60000 ? `<button class="btn sm" data-a="rsvStart" data-id="${r.id}">▶ Iniciar ahora</button>` : ''}${c.estado === 'en_uso' ? `<button class="btn sec sm" data-a="rsvEnd" data-id="${r.id}">■ Finalizar</button>` : ''}${c.estado === 'pendiente' && now < c.s - 15 * 60000 ? '<small class="muted">Se puede iniciar desde 15 minutos antes de la hora.</small>' : ''}</div>` : ''}</div>
+    ${cuentaHtml(r, k, adm, prods)}
     <div class="row mt"><button class="btn sec sm" data-a="qrShow" data-id="${r.id}">Ver QR</button>${mail ? `<button class="btn sec sm" data-a="mailResend" data-id="${r.id}">📧 Reenviar correo</button>` : ''}</div>
     ${adm && espera.length ? `<p class="muted mt"><small>⏳ ${espera.length} en lista de espera (${espera.map(e => esc(e.nombre || e.correo)).join(', ')}). Al liberar la cancha se les avisará por correo.</small></p>` : ''}
     <button class="btn danger full mt" data-a="rsvCancel" data-id="${r.id}">${adm ? 'Liberar cancha (cancelar reserva)' : 'Cancelar reserva'}</button>`);
@@ -2886,7 +2949,8 @@ V.stats = async () => {
 
 /* ---------- AJUSTES DEL CLUB (nombre y logo) ---------- */
 V.ajustes = async () => {
-  S.ajLogo = undefined;
+  S.ajLogo = undefined; S.banImg = null;
+  const bs = await db(T('banner').select('*').order('orden').order('created_at')).catch(() => []);
   return `<div class="card" style="max-width:560px"><h3>Marca del club</h3>
     <p class="muted">Cambia el nombre y el logo que ven todos los usuarios. Los colores se conservan.</p>
     <label class="f">Nombre</label><input class="in" id="aj_nom" maxlength="60" value="${esc(appName())}">
@@ -2894,7 +2958,42 @@ V.ajustes = async () => {
     <label class="f">Logo (PNG o JPG; se ajusta a 256 px)</label>
     <div class="row" style="flex-wrap:nowrap;gap:16px"><div class="brand" id="aj_prev" style="padding:0;min-width:0">${brandHtml()}</div></div>
     <input class="in mt" type="file" accept="image/*" data-c="ajLogo">
-    <div class="row mt"><button class="btn" data-a="ajSave">Guardar</button><button class="btn sec" data-a="ajQuitar">Quitar logo</button><button class="btn sec" data-a="ajNombre">Nombre por defecto</button></div></div>`;
+    <div class="row mt"><button class="btn" data-a="ajSave">Guardar</button><button class="btn sec" data-a="ajQuitar">Quitar logo</button><button class="btn sec" data-a="ajNombre">Nombre por defecto</button></div></div>${bannerAdm(bs)}`;
+};
+const bannerAdm = bs => `<div class="card mt" style="max-width:900px"><h3>🖼️ Imágenes del banner (slider de inicio)</h3>
+  <p class="muted">Se muestran en el login, el inicio del jugador y el panel. ${bs.length ? '' : 'Ahora mismo se ven las 6 imágenes de fábrica; en cuanto agregues una, se usarán solo las tuyas.'}</p>
+  <div class="grid g3 mt">${bs.map((b, i) => `<div class="card" style="padding:10px"><div class="banth" style="background-image:url('${b.imagen}');${b.activo ? '' : 'opacity:.35'}"></div>
+    <b style="display:block;margin-top:8px">${esc(b.titulo || 'Sin título')}</b><small>${esc(b.subtitulo || '')}</small>
+    <div class="row mt"><button class="btn sec sm" data-a="banMove" data-id="${b.id}" data-d="-1" ${i ? '' : 'disabled'}>←</button><button class="btn sec sm" data-a="banMove" data-id="${b.id}" data-d="1" ${i < bs.length - 1 ? '' : 'disabled'}>→</button>
+    <button class="btn sec sm" data-a="banEdit" data-id="${b.id}">Editar</button><button class="btn sec sm" data-a="banAct" data-id="${b.id}" data-v="${b.activo ? 0 : 1}">${b.activo ? 'Ocultar' : 'Mostrar'}</button><button class="btn danger sm" data-a="banDel" data-id="${b.id}">Eliminar</button></div></div>`).join('')}</div>
+  <h3 class="mt2">Agregar imagen</h3><div class="two"><div><label class="f">Título</label><input class="in" id="ban_t" maxlength="60" placeholder="Ej: Canchas sintéticas de microfútbol"></div><div><label class="f">Subtítulo</label><input class="in" id="ban_s" maxlength="80" placeholder="Ej: Alquiler por horas"></div></div>
+  <label class="f">Imagen (horizontal, se ajusta a 1600 px)</label><input class="in" type="file" accept="image/*" data-c="banPick">
+  <button class="btn mt" data-a="banAdd">+ Agregar al banner</button></div>`;
+const banReload = async () => { S.banner = await db(T('banner').select('*').eq('activo', true).order('orden').order('created_at')).catch(() => []); reload(); };
+C.banPick = async (v, el) => { if (el.files[0]) { S.banImg = await resizeImg(el.files[0], 1600, .8); toast('Imagen lista para agregar', 'ok'); } };
+A.banAdd = async () => {
+  if (!S.banImg) throw new Error('Elige primero una imagen');
+  const bs = await db(T('banner').select('orden'));
+  await db(T('banner').insert({ imagen: S.banImg, titulo: $('#ban_t').value.trim() || null, subtitulo: $('#ban_s').value.trim() || null, orden: bs.reduce((m, b) => Math.max(m, b.orden), 0) + 1 }));
+  S.banImg = null; toast('Imagen agregada al banner', 'ok'); await banReload();
+};
+A.banDel = async d => { if (!confirm('¿Eliminar esta imagen del banner?')) return; await db(T('banner').delete().eq('id', d.id)); toast('Imagen eliminada'); await banReload(); };
+A.banAct = async d => { await db(T('banner').update({ activo: d.v === '1' }).eq('id', d.id)); await banReload(); };
+A.banMove = async d => {
+  const bs = await db(T('banner').select('id,orden').order('orden').order('created_at')), i = bs.findIndex(b => b.id === d.id), j = i + +d.d;
+  if (i < 0 || j < 0 || j >= bs.length) return;
+  [bs[i], bs[j]] = [bs[j], bs[i]];
+  for (let k = 0; k < bs.length; k++) await db(T('banner').update({ orden: k + 1 }).eq('id', bs[k].id));
+  await banReload();
+};
+A.banEdit = async d => {
+  const b = await db(T('banner').select('id,titulo,subtitulo').eq('id', d.id).single()); S.banImg = null;
+  modal(`<h2>Editar imagen del banner</h2><label class="f">Título</label><input class="in" id="be_t" maxlength="60" value="${esc(b.titulo || '')}"><label class="f">Subtítulo</label><input class="in" id="be_s" maxlength="80" value="${esc(b.subtitulo || '')}">
+    <label class="f">Cambiar imagen (opcional)</label><input class="in" type="file" accept="image/*" data-c="banPick"><button class="btn full mt" data-a="banSave" data-id="${b.id}">Guardar</button>`);
+};
+A.banSave = async d => {
+  const r = { titulo: $('#be_t').value.trim() || null, subtitulo: $('#be_s').value.trim() || null }; if (S.banImg) r.imagen = S.banImg;
+  await db(T('banner').update(r).eq('id', d.id)); S.banImg = null; closeModal(); toast('Imagen actualizada', 'ok'); await banReload();
 };
 C.ajLogo = async (v, el) => {
   const f = el.files[0]; if (!f) return;
@@ -2918,7 +3017,7 @@ A.ajSave = async () => {
 V.sedes = async () => {
   const [ss, cs] = await Promise.all([db(T('sedes').select('*').order('nombre')), db(T('canchas').select('*').order('nombre'))]);
   return `<div class="row between"><p class="muted">Define sedes, horario de atención y canchas.</p><button class="btn" data-a="sedeEdit">+ Nueva sede</button></div>
-  ${ss.map(s => `<div class="card mt"><div class="row between"><div><h3 style="margin:0">${esc(s.nombre)} ${s.activa ? '' : '<span class="st rechazada">Inactiva</span>'}</h3><small>${esc(s.ciudad || '')} · abre ${hh(s.apertura)} · cierra ${hh(s.cierre)}</small></div><div class="row"><button class="btn sec sm" data-a="sedeEdit" data-id="${s.id}">Editar</button><button class="btn sm" data-a="courtEdit" data-sede="${s.id}">+ Cancha</button></div></div>
+  ${ss.map(s => `<div class="card mt"><div class="row between"><div><h3 style="margin:0">${esc(s.nombre)} ${s.activa ? '' : '<span class="st rechazada">Inactiva</span>'}</h3><small>${esc(s.ciudad || '')} · abre ${hh(s.apertura)} · cierra ${hh(s.cierre)}</small></div><div class="row"><button class="btn sec sm" data-a="sedeEdit" data-id="${s.id}">Editar</button><button class="btn sm" data-a="courtEdit" data-sede="${s.id}">+ Cancha</button><button class="btn danger sm" data-a="sedeDel" data-id="${s.id}">Eliminar</button></div></div>
     <div class="row mt">${cs.filter(c => c.sede_id === s.id).map(c => `<button class="fl ${c.activa ? '' : 'on'}" data-a="courtEdit" data-id="${c.id}" data-sede="${s.id}">${esc(c.nombre)} · ${esc(c.tipo || 'Fútbol 5')} · ${money(c.precio_hora)}${Number(c.precio_noche) > 0 ? ' / ' + money(c.precio_noche) + ' noche' : ''}${c.activa ? '' : ' (inactiva)'}</button>`).join('') || '<small>Sin canchas</small>'}</div></div>`).join('')}`;
 };
 A.sedeEdit = async d => {
@@ -2927,7 +3026,17 @@ A.sedeEdit = async d => {
     <label class="f">Nombre</label><input class="in" id="s_nom" value="${esc(s.nombre)}"><label class="f">Ciudad</label><input class="in" id="s_ciu" value="${esc(s.ciudad || '')}">
     <div class="two"><div><label class="f">Abre (hora, 0-23)</label><input class="in" type="number" id="s_ap" min="0" max="23" value="${s.apertura}"></div><div><label class="f">Cierra (hora, 1-24)</label><input class="in" type="number" id="s_ci" min="1" max="24" value="${s.cierre}"></div></div>
     <label class="f">Estado</label><select class="in" id="s_act"><option value="1" ${s.activa ? 'selected' : ''}>Activa</option><option value="0" ${s.activa ? '' : 'selected'}>Inactiva</option></select>
-    <button class="btn full mt" data-a="sedeSave" data-id="${d.id || ''}">Guardar</button>`);
+    <button class="btn full mt" data-a="sedeSave" data-id="${d.id || ''}">Guardar</button>${d.id ? `<button class="btn danger full mt" data-a="sedeDel" data-id="${d.id}">Eliminar sede</button>` : ''}`);
+};
+A.sedeDel = async d => {
+  const [cs, rs] = await Promise.all([db(T('canchas').select('id').eq('sede_id', d.id)), db(T('reservas').select('id').eq('sede_id', d.id).eq('estado', 'confirmada').gte('fecha', today()))]);
+  if (!confirm(`¿Eliminar esta sede?\n\nSe borrarán también sus ${cs.length} cancha(s) con sus reservas, encuentros y torneos.${rs.length ? `\n⚠️ Tiene ${rs.length} reserva(s) próximas que se perderán.` : ''}\n\nSi solo quieres dejar de usarla, mejor edítala y ponla Inactiva.\nEsta acción no se puede deshacer.`)) return;
+  await db(T('sedes').delete().eq('id', d.id)); closeModal(); await loadBase(); toast('Sede eliminada', 'ok'); reload();
+};
+A.courtDel = async d => {
+  const rs = await db(T('reservas').select('id').eq('court_id', d.id).eq('estado', 'confirmada').gte('fecha', today()));
+  if (!confirm(`¿Eliminar esta cancha?${rs.length ? `\n⚠️ Tiene ${rs.length} reserva(s) próximas que se perderán.` : ''}\nSi solo quieres dejar de usarla, ponla Inactiva.\nEsta acción no se puede deshacer.`)) return;
+  await db(T('canchas').delete().eq('id', d.id)); closeModal(); await loadBase(); toast('Cancha eliminada', 'ok'); reload();
 };
 A.sedeSave = async d => {
   const r = { nombre: $('#s_nom').value.trim(), ciudad: $('#s_ciu').value.trim(), apertura: +$('#s_ap').value, cierre: +$('#s_ci').value, activa: $('#s_act').value === '1' };
@@ -2942,7 +3051,7 @@ A.courtEdit = async d => {
     <div><label class="f">Precio por hora desde las 6 pm ($)</label><input class="in" type="number" id="c_noche" min="0" value="${c.precio_noche || 0}"></div></div>
     <small class="muted">Deja el precio nocturno en 0 si es igual al de día.</small>
     <label class="f">Estado</label><select class="in" id="c_act"><option value="1" ${c.activa ? 'selected' : ''}>Activa</option><option value="0" ${c.activa ? '' : 'selected'}>Inactiva</option></select>
-    <button class="btn full mt" data-a="courtSave" data-id="${d.id || ''}" data-sede="${d.sede}">Guardar</button>`);
+    <button class="btn full mt" data-a="courtSave" data-id="${d.id || ''}" data-sede="${d.sede}">Guardar</button>${d.id ? `<button class="btn danger full mt" data-a="courtDel" data-id="${d.id}">Eliminar cancha</button>` : ''}`);
 };
 A.courtSave = async d => {
   const r = { nombre: $('#c_nom').value.trim(), precio_hora: +$('#c_pre').value || 0, precio_noche: +$('#c_noche').value || 0, tipo: $('#c_tipo').value, activa: $('#c_act').value === '1' }; if (!r.nombre) throw new Error('La cancha necesita un nombre');
