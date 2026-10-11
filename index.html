@@ -534,7 +534,7 @@ function sedeSel() {
    PWA (manifiesto en línea)
    ===================================================================== */
 /* Slider automático de juegos de fútbol (login y pantalla de inicio) */
-const SLIDES = [['img/juego1.jpg', 'Reserva tu cancha sintética', 'Por horas, de día o de noche'], ['img/juego2.jpg', 'Partidos bajo las luces', 'Canchas iluminadas hasta tarde'], ['img/juego3.jpg', 'Fútbol 5, 7, 8 y Microfútbol', 'Elige la cancha de tu parche'], ['img/juego4.jpg', 'Arma tu equipo', 'Encuentros, retos y torneos'], ['img/juego5.jpg', 'Vive el juego', 'Suma puntos y sube de categoría'], ['img/juego6.jpg', 'Tu partido, tu cancha', 'Reserva en segundos']];
+const SLIDES = [['img/juego1.jpg', 'Canchas sintéticas de microfútbol', 'Alquiler por horas, reserva en segundos'], ['img/juego2.jpg', 'Canchas cubiertas y cerradas', 'Juega sin importar el clima'], ['img/juego3.jpg', 'Microfútbol y Fútbol 5', 'Tu cancha por 1 hora o más'], ['img/juego4.jpg', 'Césped sintético de calidad', 'Cuidado y mantenimiento constante'], ['img/juego5.jpg', 'Canchas con iluminación', 'Reserva de día o de noche'], ['img/juego6.jpg', 'Arma tu parche', 'Escoge hora, cancha y a jugar']];
 const sliderHtml = (cls = '') => `<div class="fslider ${cls}" aria-hidden="true">${SLIDES.map((s, i) => `<div class="fs ${i ? '' : 'on'}" style="background-image:url('${s[0]}')"></div>`).join('')}<div class="fcap" id="fcap">${SLIDES[0][1]}<small>${SLIDES[0][2]}</small></div><div class="fdots">${SLIDES.map((_, i) => `<i class="${i ? '' : 'on'}"></i>`).join('')}</div></div>`;
 setInterval(() => document.querySelectorAll('.fslider').forEach(el => {
   const s = [...el.querySelectorAll('.fs')], d = [...el.querySelectorAll('.fdots i')]; if (s.length < 2) return;
@@ -626,7 +626,7 @@ function authScreen(tab = 'login') {
     <div class="hero">
       <div class="brand" translate="no" style="padding:0 0 28px">${brandHtml()}</div>
       <h1>Tu cancha,<br>tu equipo,<br><b>tu partido.</b></h1>
-      <p>Reserva tu cancha sintética por horas, arma partidos de fútbol y microfútbol, suma 3 puntos por cada victoria y sube de categoría.</p>
+      <p>Alquila canchas sintéticas de microfútbol y fútbol por horas, arma tu parche, suma 3 puntos por cada victoria y sube de categoría.</p>
       ${sliderHtml()}
     </div>
     <div class="formwrap"><div class="authcard">
