@@ -71,3 +71,9 @@ Se clonó la PWA de pádel (Cashless-Sport) y se convirtió en **TuCancha**, una
 - Base: agregar los cambios al final de `schema.sql` y ejecutarlos con `herramientas/q.cjs "<sql>"` (requiere `SB_TOKEN`) o desde el SQL Editor.
 - Funciones: editar `funciones/*/index.ts` y desplegar con `herramientas/deploy2.cjs`.
 - Prueba local: `npx http-server -p 8766 -c-1 .` y abrir http://localhost:8766/index.html
+  - Si sale `EADDRINUSE` es que ya hay un servidor viejo escuchando en el 8766: la página igual funciona. Para apagarlo: `netstat -ano | findstr :8766` y luego `taskkill /PID <pid> /F`.
+
+## 7. Últimos mensajes de la sesión
+- Se guardó este resumen y se subió al repositorio.
+- Claude Code detuvo el servidor local por falta de memoria, pero el proceso de Node siguió vivo en el puerto 8766, así que la página local siguió respondiendo.
+- Estado final: todo está subido a GitHub (`main`) y publicado en GitHub Pages; no hay cambios sin subir.
