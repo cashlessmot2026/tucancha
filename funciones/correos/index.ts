@@ -69,7 +69,7 @@ function detalles(r: any) {
     ${fila('Cancha', esc(r.canchas?.nombre))}
     ${fila('Fecha', esc(cap(fechaLarga(r.fecha))))}
     ${fila('Hora', `${hh(r.hora)} a ${hh(r.hora + 1)}`)}
-    ${fila('Valor', `${money(r.canchas?.precio_hora)} <span style="font-weight:400;color:#6b7896;font-size:12px">(se paga en taquilla)</span>`)}
+    ${fila('Valor', `${money(r.canchas?.precio_noche > 0 && r.hora >= 18 ? r.canchas.precio_noche : r.canchas?.precio_hora)} <span style="font-weight:400;color:#6b7896;font-size:12px">(se paga en la cancha)</span>`)}
     ${fila('Código', esc(String(r.id).slice(0, 8).toUpperCase()))}
   </table>`;
   return { nombre, tabla };
