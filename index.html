@@ -553,7 +553,7 @@ let pwaEls = [];
 function applyBrand() {
   document.title = appName();
   pwaEls.forEach(e => e.remove()); pwaEls = [];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="110" fill="#060d1c"/><circle cx="256" cy="256" r="120" fill="#b8f22a"/><path d="M150 210c70 30 140 30 212 0M150 302c70-30 140-30 212 0" stroke="#060d1c" stroke-width="18" fill="none"/></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0b3d1e"/><g transform="translate(7,7) scale(.78)"><circle cx="32" cy="32" r="30" fill="#fff" stroke="#0b1220" stroke-width="2.5"/><polygon points="32,20 43,28 39,41 25,41 21,28" fill="#0b1220"/><g stroke="#0b1220" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M32 20V7M43 28l12-5M39 41l8 10M25 41l-8 10M21 28L9 23"/><path d="M32 7l10 3M32 7l-10 3M55 23l1 10M55 23l-6-8M47 51l-10 5M47 51l8-9M17 51l10 5M17 51l-8-9M9 23l-1 10M9 23l6-8"/></g></g></svg>`;
   const icon = appLogo() || 'data:image/svg+xml;base64,' + btoa(svg);
   const f = document.createElement('link'); f.rel = 'icon'; f.href = icon;   // el manifest de la app instalada es el archivo estático manifest.webmanifest
   document.head.append(f); pwaEls = [f];
